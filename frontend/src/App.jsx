@@ -1,35 +1,67 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import './index.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [tasks, setTasks] = useState([]);
+  const [newTask, setNewTask] = useState('');
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const fetchTasks = async () => {
+    const response = await axios.get('http://localhost:8000/tasks/');
+    setTasks(response.data);
+  };
+
+  const addTask = async () => {
+    if (newTask.trim()) {
+      await axios.post('http://localhost:8000/tasks/', {
+        title: newTask,
+        completed: false
+      });
+      setNewTask('');
+      fetchTasks();
+    }
+  };
+
+  const toggleTask = async (id) => {
+    const task = tasks.find(t => t.id === id);
+    await axios.put(`http://localhost:8000/tasks/${id}`, {
+      title: task.title,
+      completed: !task.completed
+    });
+    fetchTasks();
+  };
+
+  const deleteTask = async (id) => {
+    await axios.delete(`http://localhost:8000/tasks/${id}`);
+    fetchTasks();
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="app">
+      <h1>Lista de Tarefas</h1>
+      <div className="task-form">
+        <input
+          type="text"
+          value={newTask}
+          onChange={(e) => setNewTask(e.target.value)}
+          placeholder="Nova tarefa"
+        />
+        <button onClick={addTask}>Adicionar</button>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+      <ul className="task-list">
+        {tasks.map(task => (
+          <li key={task.id} className={task.completed ? 'completed' : ''}>
+            <span onClick={() => toggleTask(task.id)}>{task.title}</span>
+            <button onClick={() => deleteTask(task.id)}>X</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
-export default App
+export default App;
